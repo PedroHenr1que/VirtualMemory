@@ -1,82 +1,138 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct{
+struct Queue{
     struct Node *start;
     struct Node *end;
-    int size;
-} Queue;
-
-struct Node{
-    int frame;
-    struct Node *next;
 };
 
-// Queue* createQueue();
-// void insert(Queue *theQueue, int dado);
-// int remove(Queue *theQueue);
+struct Node{
+    int page, frame;
+    struct Node *next;
+    
+};
+
+struct Queue* createQueue();
+void insert(struct Queue *theQueue, int newPage, int newFrame);
+int removeFromQueue(struct Queue *theQueue);
+int searchPage(struct Queue *theQueue, int page);
 
 // int main(void){
-//     Queue *theQueue;
+//     struct Queue *theQueue;
 //     theQueue = createQueue();
-//     //theQueue = (Queue *)malloc(sizeof(Queue *));
-//     insert(theQueue, 10);
-//     insert(theQueue, 85);
-//     insert(theQueue, 150);
-//     insert(theQueue, 300);
-//     remove(theQueue);
-//     remove(theQueue);
-//     remove(theQueue);
-//     remove(theQueue);
-//     remove(theQueue);
+    
+//     insert(theQueue, 244, 200);
+//     insert(theQueue, 30, 89);
+//     insert(theQueue, 66, 150);
+
+//     struct Node *aux = theQueue->start;
+
+//     while (aux!=NULL) {
+//         printf("%d %d\n", aux->page, aux->frame);
+//         aux = aux->next;
+//     }
+    
+//     removeFromQueue(theQueue);
+
+//     aux = theQueue->start;
+
+//     while (aux!=NULL) {
+//         printf("%d %d\n", aux->page, aux->frame);
+//         aux = aux->next;
+//     }
+//     // int result = searchPage(theQueue, 244);
+//     // printf("\nFrame again: %d", result);
+
+//     // result = searchPage(theQueue, 66);
+//     // printf("\nFrame again: %d", result);
+
+//     // result = searchPage(theQueue, 30);
+//     // printf("\nFrame again: %d", result);
+
+//     // result = searchPage(theQueue, 50);
+//     // if (result == -1) {
+//     //     printf("\nPagina 50 não encontrada");
+//     // }
+
+//     // result = searchPage(theQueue, 66);
+//     // printf("\nFrame again: %d", result);
+    
+//     // 
+//     // result = searchPage(theQueue, 66);
+//     // if (result == -1) {
+//     //     printf("\nPagina 66 não encontrada");
+//     // }
+//     // insert(theQueue, 150);
+//     // insert(theQueue, 300);
+//     // removeFromQueue(theQueue);
+//     // removeFromQueue(theQueue);
+//     // removeFromQueue(theQueue);
+//     // removeFromQueue(theQueue);
+//     // removeFromQueue(theQueue);
 // }
 
-Queue* createQueue() {
-    Queue *theQueue;
-    theQueue = (Queue *)malloc(sizeof(Queue *));
+struct Queue* createQueue() {
+    struct Queue *theQueue;
+    theQueue = (struct Queue *)malloc(sizeof(struct Queue *));
 
     if (theQueue != NULL) {
         theQueue->start = NULL;
         theQueue->end = NULL;
-        theQueue->size = 0;
     }
 
     return theQueue;
 }
 
-void insert(Queue *theQueue, int dado){
+void insert(struct Queue *theQueue, int newPage, int newFrame) {
 
     struct Node *new;
     new = (struct Node *)malloc(sizeof(struct Node *));
-
     new->next = NULL;
-    new->frame = dado;
+    new->frame = newFrame;
+    new->page = newPage;
 
     if (theQueue->start == NULL) {
-        theQueue->end = new;
         theQueue->start = new;
-        theQueue->size = theQueue->size + 1;
-
+        theQueue->end = new;
+        
     } else {
         theQueue->end->next = new;
         theQueue->end = new;
-        theQueue->size = theQueue->size + 1;
+        
     }
 }
 
-int remove(Queue *theQueue){
+int removeFromQueue(struct Queue *theQueue) {
     struct Node *out;
 
     if (theQueue->start == NULL) {
       theQueue->end = NULL;
-      return(0);
+      return 0;
     }
     
     out = theQueue->start;
     theQueue->start = out->next;
-    theQueue->size = theQueue->size -1;
 
     free(out);
 
-    return(1);
+    return 1;
+}
+
+int searchPage(struct Queue *theQueue, int pageToBeSearched) {
+
+    struct Node *aux = theQueue->start;
+
+    while (aux != NULL) {
+        
+        if (aux->page == pageToBeSearched) {
+
+            //printf("\nPage %d - Points to frame %d", aux->page, aux->frame);
+            return aux->frame;
+
+        }
+        
+        aux = aux->next;
+    }
+    
+    return -1;
 }
