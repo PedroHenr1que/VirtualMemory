@@ -9,13 +9,18 @@ int main() {
 
         file = fopen("BACKING_STORE.bin", "rb");
 
-        int *valor;
+        if (file == NULL) {
+                printf("Não abriu");
+        }
+        
 
-        fseek(file, 285, SEEK_SET);
+        int value[256];
 
-        fread(valor, 256, 1, file);
+        fseek(file, 16896, SEEK_SET);
 
-        printf("Valor %d", *valor);
+        fread(&value, 256, 1, file);
+
+        printf("\nValor %d", value[20]);
 
         fclose(file);
 }
