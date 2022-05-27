@@ -61,7 +61,6 @@ int main(int argc, char *argv[]) {
         char virtualAddressStr[6];
 
         while ((fscanf(file, "%[^\n]", virtualAddressStr)) != EOF) {
-
                 //cast string address to decimal
                 int virtualAddressDec = atoi(virtualAddressStr), currentPage, currentOffset;
                 int /*isInTLB = 0,*/ isInPageTable = 0;
@@ -82,12 +81,11 @@ int main(int argc, char *argv[]) {
                                 signed char value = physicalMemory[currentFrame].pageFromBackingStore[currentOffset];
 
                                 printf("Virtual address: %d Physical address: %d Value: %d\n", virtualAddressDec, physicalAddress, value);
-
+                                
                                 isInPageTable = 1;
 
                         } else { //page fault
                                 //find in backingstore, update pageTable
-
                                 if (strcmp(physicalMemoryReplacementAlgo, "fifo") == 0) {
                                         if (fullPhysicalMemory == 1) {
                                                 findAndPutInvalidBitInPageTableForRelatedFrame();
@@ -111,6 +109,8 @@ int main(int argc, char *argv[]) {
                                 totalPageFaults ++;  
                         }
                 }
+
+                
                 //printf("Virtual Address: %s - Page: %d - Offset: %d\n", stringNum, page, offset);
 
                 totalOfVirtualAddressesTranslated ++;
@@ -136,7 +136,7 @@ void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256]) {
 void findAndPutInvalidBitInPageTableForRelatedFrame() {
         int frameToSearch = countPhysicalMemory;
         for (int i = 0; i < 256; i++) {
-                if (pageTable[i].frame == frameToSearch) {
+                if (pageTable[i].frame == frameToSearch && pageTable[i].isValid == VALID) {
                         pageTable[i].isValid = NOT_VALID;
                         break;
                 }
