@@ -13,12 +13,14 @@ struct pageTableElement {
         int isValid;
 };
 
-#define PHYSICAL_MEMORY_SIZE 256
+#define PHYSICAL_MEMORY_SIZE 128
 #define VALID 1
 #define NOT_VALID 0
 int countPhysicalMemory = 0;
+int fullPhysicalMemory = 0;
 
 void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256]);
+void findAndPutInvalidBitInPageTableForRelatedFrame();
 
 struct pageTableElement pageTable[256];
 struct physicalMemoryFrame physicalMemory[PHYSICAL_MEMORY_SIZE];
@@ -29,17 +31,22 @@ struct physicalMemoryFrame physicalMemory[PHYSICAL_MEMORY_SIZE];
 
 int main(int argc, char *argv[]) {
 
-        //statistics
-        double totalOfVirtualAddressesTranslated = 0;
-        double totalPageFaults = 0;
-        double totalPageFaultRate = 0.0;
-
         //Check if the args are wrong, if they are the program exit
         int checkErrors = checkArgs(argc, argv);
         if (checkErrors < 0) {
                 exit(1);
         }
-        
+
+        //args
+        char *virtualAddressesFile = argv[1];
+        char *physicalMemoryReplacementAlgo = argv[2];
+        char *tlbReplacementAlgo = argv[3];
+
+        //statistics
+        double totalOfVirtualAddressesTranslated = 0;
+        double totalPageFaults = 0;
+        double totalPageFaultRate = 0.0;
+
         //Initialize page table with invalid bit
         for (int i = 0; i < 256; i++) {
                 pageTable[i].isValid = NOT_VALID;
@@ -50,7 +57,7 @@ int main(int argc, char *argv[]) {
 
         //Vars to use in file managment
         FILE *file;
-        file = fopen(argv[1], "r");
+        file = fopen(virtualAddressesFile, "r");
         char virtualAddressStr[6];
 
         while ((fscanf(file, "%[^\n]", virtualAddressStr)) != EOF) {
@@ -80,15 +87,28 @@ int main(int argc, char *argv[]) {
 
                         } else { //page fault
                                 //find in backingstore, update pageTable
+
+                                if (strcmp(physicalMemoryReplacementAlgo, "fifo") == 0) {
+                                        if (fullPhysicalMemory == 1) {
+                                                findAndPutInvalidBitInPageTableForRelatedFrame();
+                                        }
+                                }
+                                
+
                                 signed char temporaryArrayPage[256];
                                 findPageInBackingStore(currentPage, temporaryArrayPage);
                                 passValuesFromBackStoreToFrame(temporaryArrayPage);
-
+                                
                                 pageTable[currentPage].frame = countPhysicalMemory;
                                 pageTable[currentPage].isValid = VALID;
                                 
+
+                                if (countPhysicalMemory == 127) {
+                                        fullPhysicalMemory = 1;
+                                }
+                                
                                 countPhysicalMemory = (countPhysicalMemory + 1) % PHYSICAL_MEMORY_SIZE;
-                                totalPageFaults ++;
+                                totalPageFaults ++;  
                         }
                 }
                 //printf("Virtual Address: %s - Page: %d - Offset: %d\n", stringNum, page, offset);
@@ -111,4 +131,14 @@ void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256]) {
                 physicalMemory[countPhysicalMemory].pageFromBackingStore[i] = valuesFromBackStore[i];
         }
         
+}
+
+void findAndPutInvalidBitInPageTableForRelatedFrame() {
+        int frameToSearch = countPhysicalMemory;
+        for (int i = 0; i < 256; i++) {
+                if (pageTable[i].frame == frameToSearch) {
+                        pageTable[i].isValid = NOT_VALID;
+                        break;
+                }
+        }
 }
