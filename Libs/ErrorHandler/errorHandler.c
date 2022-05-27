@@ -71,6 +71,10 @@ int checkArgs(int argc, char *argv[]) {
                 } else if (checkIfFileExistAndCanBeOpen(argv[1]) == -1) {
                         result += -1;
                 }
+
+                if (checkIfFileExistAndCanBeOpen("BACKING_STORE.bin") == -1) {
+                        result += -1;
+                }
                 
                 if (strcmp(argv[2], "fifo") != 0 && strcmp(argv[2], "lru") != 0) {
                         printf("############################ ERROR ############################\n");

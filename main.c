@@ -3,22 +3,36 @@
 #include <string.h>
 #include "Libs/binTrans/binTrans.h"
 #include "Libs/ErrorHandler/errorHandler.h"
-//#include "Libs/Queue/queue.h"
+#include "Libs/backingStore/backingStore.h"
 
 struct physicalMemoryFrame {
-        int pageFromBackingStore[256];
+        signed char pageFromBackingStore[256];
 };
 struct pageTableElement {
         int frame;
         int isValid;
 };
 
+#define PHYSICAL_MEMORY_SIZE 256
+#define VALID 1
+#define NOT_VALID 0
+int countPhysicalMemory = 0;
+
+void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256]);
+
 struct pageTableElement pageTable[256];
-struct physicalMemoryFrame physicalMemory[256];
+struct physicalMemoryFrame physicalMemory[PHYSICAL_MEMORY_SIZE];
+
+
 //phsycalMemory lista
 //TLB lista
 
 int main(int argc, char *argv[]) {
+
+        //statistics
+        double totalOfVirtualAddressesTranslated = 0;
+        double totalPageFaults = 0;
+        double totalPageFaultRate = 0.0;
 
         //Check if the args are wrong, if they are the program exit
         int checkErrors = checkArgs(argc, argv);
@@ -26,9 +40,9 @@ int main(int argc, char *argv[]) {
                 exit(1);
         }
         
-        //Create page table
+        //Initialize page table with invalid bit
         for (int i = 0; i < 256; i++) {
-                pageTable[i].isValid = 0;
+                pageTable[i].isValid = NOT_VALID;
         }
         
         //Contains the [0]page and the [1]offset in decimal
@@ -37,36 +51,64 @@ int main(int argc, char *argv[]) {
         //Vars to use in file managment
         FILE *file;
         file = fopen(argv[1], "r");
-        char stringNum[6];
+        char virtualAddressStr[6];
 
-        while ((fscanf(file, "%[^\n]", stringNum)) != EOF) {
+        while ((fscanf(file, "%[^\n]", virtualAddressStr)) != EOF) {
 
                 //cast string address to decimal
-                int addressDec = atoi(stringNum), page, offset;
+                int virtualAddressDec = atoi(virtualAddressStr), currentPage, currentOffset;
                 int /*isInTLB = 0,*/ isInPageTable = 0;
 
                 fgetc(file);
                 //get page and offset for the current address
-                getPageAndOffset(addressDec, returnArray);
+                getPageAndOffset(virtualAddressDec, returnArray);
+
+                currentPage = returnArray[0];
+                currentOffset = returnArray[1];
 
                 while (isInPageTable == 0 /*&& isInTLB == 0*/) {
                         
-                        page = returnArray[0];
-                        offset = returnArray[1];
-
-                        if (pageTable[page].isValid == 1) {
+                        if (pageTable[currentPage].isValid == VALID) {
                                 //find frame and print int
+                                int currentFrame = pageTable[currentPage].frame;
+                                int physicalAddress = (currentFrame * 256) + currentOffset;
+                                signed char value = physicalMemory[currentFrame].pageFromBackingStore[currentOffset];
+
+                                printf("Virtual address: %d Physical address: %d Value: %d\n", virtualAddressDec, physicalAddress, value);
 
                                 isInPageTable = 1;
-                        } else {
-                                //find in backingstore, update tlb, update pageTable
 
+                        } else { //page fault
+                                //find in backingstore, update pageTable
+                                signed char temporaryArrayPage[256];
+                                findPageInBackingStore(currentPage, temporaryArrayPage);
+                                passValuesFromBackStoreToFrame(temporaryArrayPage);
 
-                                isInPageTable = 0;
+                                pageTable[currentPage].frame = countPhysicalMemory;
+                                pageTable[currentPage].isValid = VALID;
+                                
+                                countPhysicalMemory = (countPhysicalMemory + 1) % PHYSICAL_MEMORY_SIZE;
+                                totalPageFaults ++;
                         }
                 }
                 //printf("Virtual Address: %s - Page: %d - Offset: %d\n", stringNum, page, offset);
+
+                totalOfVirtualAddressesTranslated ++;
         }
         
         fclose(file);
+
+        totalPageFaultRate = totalPageFaults / totalOfVirtualAddressesTranslated;
+
+        printf("Number of Translated Addresses = %.0f\n", totalOfVirtualAddressesTranslated);
+        printf("Page Faults = %.0f\n", totalPageFaults);
+        printf("Page Fault Rate = %.3f\n", totalPageFaultRate);
+}
+
+void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256]) {
+
+        for (int i = 0; i < 256; i++) {
+                physicalMemory[countPhysicalMemory].pageFromBackingStore[i] = valuesFromBackStore[i];
+        }
+        
 }
