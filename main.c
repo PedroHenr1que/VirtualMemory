@@ -6,6 +6,7 @@
 #include "Libs/backingStore/backingStore.h"
 
 struct physicalMemoryFrame {
+        int lastTimeUsed;
         signed char pageFromBackingStore[256];
 };
 struct pageTableElement {
@@ -16,20 +17,23 @@ struct pageTableElement {
 #define PHYSICAL_MEMORY_SIZE 128
 #define VALID 1
 #define NOT_VALID 0
-int countPhysicalMemory = 0;
-int fullPhysicalMemory = 0;
 
-void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256]);
-void findAndPutInvalidBitInPageTableForRelatedFrame();
+
+void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256], int frame);
+void findAndPutInvalidBitInPageTableForRelatedFrame(int frameToSearch);
+void addIfNotFullOrIfFifo(int currentPage, signed char temporaryArrayPage[256], int countPhysicalMemory);
+int findLessUsedFrame();
 
 struct pageTableElement pageTable[256];
 struct physicalMemoryFrame physicalMemory[PHYSICAL_MEMORY_SIZE];
-
-
-//phsycalMemory lista
-//TLB lista
-
+int time = 0;
 int main(int argc, char *argv[]) {
+
+        
+
+        //aux vars for replacement algo
+        int countPhysicalMemory = 0;
+        int fullPhysicalMemory = 0;
 
         //Check if the args are wrong, if they are the program exit
         int checkErrors = checkArgs(argc, argv);
@@ -79,26 +83,34 @@ int main(int argc, char *argv[]) {
                                 int currentFrame = pageTable[currentPage].frame;
                                 int physicalAddress = (currentFrame * 256) + currentOffset;
                                 signed char value = physicalMemory[currentFrame].pageFromBackingStore[currentOffset];
-
+                                physicalMemory[currentFrame].lastTimeUsed = time;
                                 printf("Virtual address: %d Physical address: %d Value: %d\n", virtualAddressDec, physicalAddress, value);
                                 
                                 isInPageTable = 1;
 
                         } else { //page fault
                                 //find in backingstore, update pageTable
-                                if (strcmp(physicalMemoryReplacementAlgo, "fifo") == 0) {
-                                        if (fullPhysicalMemory == 1) {
-                                                findAndPutInvalidBitInPageTableForRelatedFrame();
-                                        }
-                                }
-                                
-
+                                printf("Page fault %.0f\n", totalPageFaults);
                                 signed char temporaryArrayPage[256];
                                 findPageInBackingStore(currentPage, temporaryArrayPage);
-                                passValuesFromBackStoreToFrame(temporaryArrayPage);
-                                
-                                pageTable[currentPage].frame = countPhysicalMemory;
-                                pageTable[currentPage].isValid = VALID;
+
+                                if (fullPhysicalMemory == 1) {
+                                        if (strcmp(physicalMemoryReplacementAlgo, "fifo") == 0) {
+                                                findAndPutInvalidBitInPageTableForRelatedFrame(countPhysicalMemory);
+                                                addIfNotFullOrIfFifo(currentPage, temporaryArrayPage, countPhysicalMemory);
+
+                                        } else {
+                                                int lessUsedFrame = findLessUsedFrame();
+                                                findAndPutInvalidBitInPageTableForRelatedFrame(lessUsedFrame);
+                                                passValuesFromBackStoreToFrame(temporaryArrayPage, lessUsedFrame);
+
+                                                pageTable[currentPage].frame = lessUsedFrame;
+                                                pageTable[currentPage].isValid = VALID;
+                                        }
+                                        
+                                } else {
+                                        addIfNotFullOrIfFifo(currentPage, temporaryArrayPage, countPhysicalMemory);
+                                }
                                 
 
                                 if (countPhysicalMemory == 127) {
@@ -112,7 +124,7 @@ int main(int argc, char *argv[]) {
 
                 
                 //printf("Virtual Address: %s - Page: %d - Offset: %d\n", stringNum, page, offset);
-
+                time++;
                 totalOfVirtualAddressesTranslated ++;
         }
         
@@ -125,16 +137,41 @@ int main(int argc, char *argv[]) {
         printf("Page Fault Rate = %.3f\n", totalPageFaultRate);
 }
 
-void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256]) {
+int findLessUsedFrame() {
+        int frameIndex = 0;
+        int min = physicalMemory[0].lastTimeUsed;
 
-        for (int i = 0; i < 256; i++) {
-                physicalMemory[countPhysicalMemory].pageFromBackingStore[i] = valuesFromBackStore[i];
+        for (int i = 1; i < PHYSICAL_MEMORY_SIZE; i++) {
+                
+                if (physicalMemory[i].lastTimeUsed < min) {
+                        min = physicalMemory[i].lastTimeUsed;
+                        frameIndex = i;
+                }
+                
         }
         
+        return frameIndex;
 }
 
-void findAndPutInvalidBitInPageTableForRelatedFrame() {
-        int frameToSearch = countPhysicalMemory;
+void addIfNotFullOrIfFifo(int currentPage, signed char temporaryArrayPage[256], int countPhysicalMemory) {
+        passValuesFromBackStoreToFrame(temporaryArrayPage, countPhysicalMemory);
+                                
+        pageTable[currentPage].frame = countPhysicalMemory;
+        pageTable[currentPage].isValid = VALID;
+
+}
+
+void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256], int frame) {
+
+        for (int i = 0; i < 256; i++) {
+                physicalMemory[frame].pageFromBackingStore[i] = valuesFromBackStore[i];
+        }
+
+        physicalMemory[frame].lastTimeUsed = time;
+}
+
+void findAndPutInvalidBitInPageTableForRelatedFrame(int frameToSearch) {
+
         for (int i = 0; i < 256; i++) {
                 if (pageTable[i].frame == frameToSearch && pageTable[i].isValid == VALID) {
                         pageTable[i].isValid = NOT_VALID;
