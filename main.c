@@ -4,6 +4,7 @@
 #include "Libs/binTrans/binTrans.h"
 #include "Libs/ErrorHandler/errorHandler.h"
 #include "Libs/backingStore/backingStore.h"
+#include "Libs/outArchive/arq.h"
 
 struct physicalMemoryFrame {
         int lastTimeUsed;
@@ -47,9 +48,11 @@ int main(int argc, char *argv[]) {
         char *tlbReplacementAlgo = argv[3];
 
         //statistics
-        double totalOfVirtualAddressesTranslated = 0;
-        double totalPageFaults = 0;
+        double totalOfVirtualAddressesTranslated = 0.0;
+        double totalPageFaults = 0.0;
         double totalPageFaultRate = 0.0;
+        double tlbHits = 0.0;
+        double tlbHitRate = 0.0;
 
         //Initialize page table with invalid bit
         for (int i = 0; i < 256; i++) {
@@ -79,13 +82,14 @@ int main(int argc, char *argv[]) {
                 while (isInPageTable == 0 /*&& isInTLB == 0*/) {
                         
                         if (pageTable[currentPage].isValid == VALID) {
+                                
                                 //find frame and print int
                                 int currentFrame = pageTable[currentPage].frame;
                                 int physicalAddress = (currentFrame * 256) + currentOffset;
                                 signed char value = physicalMemory[currentFrame].pageFromBackingStore[currentOffset];
                                 physicalMemory[currentFrame].lastTimeUsed = time;
-                                printf("Virtual address: %d Physical address: %d Value: %d\n", virtualAddressDec, physicalAddress, value);
                                 
+                                writeInOutArchive(virtualAddressDec, physicalAddress, value);
                                 isInPageTable = 1;
 
                         } else { //page fault
@@ -122,8 +126,6 @@ int main(int argc, char *argv[]) {
                         }
                 }
 
-                
-                //printf("Virtual Address: %s - Page: %d - Offset: %d\n", stringNum, page, offset);
                 time++;
                 totalOfVirtualAddressesTranslated ++;
         }
@@ -131,10 +133,7 @@ int main(int argc, char *argv[]) {
         fclose(file);
 
         totalPageFaultRate = totalPageFaults / totalOfVirtualAddressesTranslated;
-
-        printf("Number of Translated Addresses = %.0f\n", totalOfVirtualAddressesTranslated);
-        printf("Page Faults = %.0f\n", totalPageFaults);
-        printf("Page Fault Rate = %.3f\n", totalPageFaultRate);
+        writeEndArchive(totalOfVirtualAddressesTranslated, totalPageFaults, totalPageFaultRate, tlbHits, tlbHitRate);
 }
 
 int findLessUsedFrame() {

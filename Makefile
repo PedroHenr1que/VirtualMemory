@@ -1,12 +1,9 @@
 CC = gcc
 
-vm: main.c
-	CC $< -o $@
+vm:
+	CC main.c Libs/binTrans/binTrans.c Libs/ErrorHandler/errorHandler.c Libs/backingStore/backingStore.c Libs/outArchive/arq.c -o $@
 
-.PHONY: run clean
-
-run:
-	./vm
+.PHONY: clean
 
 clean:
 	rm vm
