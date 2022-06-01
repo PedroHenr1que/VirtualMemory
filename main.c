@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
         }
 
         for (int i = 0; i < TLB_SIZE; i++) {
-                tlb[i].page = -1;;
+                tlb[i].page = -1;
         }
         
         //Contains the [0]page and the [1]offset in decimal
@@ -96,40 +96,40 @@ int main(int argc, char *argv[]) {
 
                 currentPage = returnArray[0];
                 currentOffset = returnArray[1];
-                
                 //###############################################
                 //search in tlb
                 int indexFrameFromTlb = searchPageInTLB(currentPage);
 
-                if (indexFrameFromTlb != -1 && tlb[indexFrameFromTlb].isValid == VALID) {
+                if (indexFrameFromTlb != -1) {
                         tlbHits++;
                         int physicalAddress = (tlb[indexFrameFromTlb].frame * 256) + currentOffset;
                         int value = physicalMemory[tlb[indexFrameFromTlb].frame].pageFromBackingStore[currentOffset];
 
+                        physicalMemory[tlb[indexFrameFromTlb].frame].lastTimeUsed = time;
+                        
                         writeInOutArchive(virtualAddressDec, physicalAddress, value);
                 } else {
 
                         while (isInPageTable == 0) {
                         
                                 if (pageTable[currentPage].isValid == VALID) {
-                                        
                                         //find frame, then offset and print int
                                         int currentFrame = pageTable[currentPage].frame;
                                         int physicalAddress = (currentFrame * 256) + currentOffset;
                                         int value = physicalMemory[currentFrame].pageFromBackingStore[currentOffset];
+
                                         physicalMemory[currentFrame].lastTimeUsed = time;
-                                        
+
                                         writeInOutArchive(virtualAddressDec, physicalAddress, value);
 
                                         //update tlb if page it's not already there
                                         if (searchPageInTLB(currentPage) == -1) {
                                                 updateTLB(currentPage, currentFrame);
                                         }
-
+                                        
                                         isInPageTable = 1;
 
                                 } else { 
-
                                         //page fault
                                         //find in backingstore, update pageTable
                                         signed char temporaryArrayPage[256];
@@ -150,7 +150,9 @@ int main(int argc, char *argv[]) {
                                                 int lessUsedFrame = findLessUsedFrame();
                                                 findAndPutInvalidBitInPageTableForRelatedFrame(lessUsedFrame);
                                                 passValuesFromBackStoreToFrame(temporaryArrayPage, lessUsedFrame);
-                                                
+
+                                                physicalMemory[lessUsedFrame].lastTimeUsed = time;
+
                                                 pageTable[currentPage].frame = lessUsedFrame;
                                                 pageTable[currentPage].isValid = VALID;
 
@@ -166,7 +168,7 @@ int main(int argc, char *argv[]) {
                                 }
                         }
                 }
-
+                
                 time++;
                 totalOfVirtualAddressesTranslated ++;
         }
@@ -175,8 +177,8 @@ int main(int argc, char *argv[]) {
 
         totalPageFaultRate = totalPageFaults / totalOfVirtualAddressesTranslated;
         tlbHitRate = tlbHits / totalOfVirtualAddressesTranslated;
-        writeEndArchive(totalOfVirtualAddressesTranslated, totalPageFaults, totalPageFaultRate, tlbHits, tlbHitRate);
 
+        writeEndArchive(totalOfVirtualAddressesTranslated, totalPageFaults, totalPageFaultRate, tlbHits, tlbHitRate);
         return 0;
 }
 
@@ -231,8 +233,6 @@ void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256], int fr
         for (int i = 0; i < 256; i++) {
                 physicalMemory[frame].pageFromBackingStore[i] = valuesFromBackStore[i];
         }
-
-        physicalMemory[frame].lastTimeUsed = time;
 }
 
 //page table
