@@ -34,6 +34,7 @@ int searchPageInTLB(int pageToSearch);
 void updateTLB(int newPage, int newFrame);
 int findLessUsedPageTLB();
 
+
 struct pageTableElement pageTable[256];
 struct physicalMemoryFrame physicalMemory[PHYSICAL_MEMORY_SIZE];
 struct tlbElement tlb[TLB_SIZE];
@@ -72,6 +73,7 @@ int main(int argc, char *argv[]) {
                 pageTable[i].isValid = NOT_VALID;
         }
 
+        //Initialize tlb
         for (int i = 0; i < TLB_SIZE; i++) {
                 tlb[i].page = -1;
         }
@@ -85,7 +87,6 @@ int main(int argc, char *argv[]) {
         char virtualAddressStr[6];
 
         //####################################################################################
-
         while ((fscanf(file, "%[^\n]", virtualAddressStr)) != EOF) {
                 //cast string address to decimal
                 int virtualAddressDec = atoi(virtualAddressStr), currentPage, currentOffset;
@@ -97,7 +98,8 @@ int main(int argc, char *argv[]) {
 
                 currentPage = returnArray[0];
                 currentOffset = returnArray[1];
-                //###############################################
+
+                //#########################################################################
                 //search in tlb
                 int indexFrameFromTlb = searchPageInTLB(currentPage);
 
@@ -106,19 +108,22 @@ int main(int argc, char *argv[]) {
                         int physicalAddress = (tlb[indexFrameFromTlb].frame * 256) + currentOffset;
                         int value = physicalMemory[tlb[indexFrameFromTlb].frame].pageFromBackingStore[currentOffset];
 
+                        //update physical memory time
                         physicalMemory[tlb[indexFrameFromTlb].frame].lastTimeUsed = time;
 
                         writeInOutArchive(virtualAddressDec, physicalAddress, value);
                 } else {
 
                         while (isInPageTable == 0) {
-                        
+                                
+                                //if page is already in page table
                                 if (pageTable[currentPage].isValid == VALID) {
                                         //find frame, then offset and print int
                                         int currentFrame = pageTable[currentPage].frame;
                                         int physicalAddress = (currentFrame * 256) + currentOffset;
                                         int value = physicalMemory[currentFrame].pageFromBackingStore[currentOffset];
-
+                                        
+                                        //update physical memory
                                         physicalMemory[currentFrame].lastTimeUsed = time;
 
                                         writeInOutArchive(virtualAddressDec, physicalAddress, value);
@@ -132,11 +137,11 @@ int main(int argc, char *argv[]) {
 
                                 } else { 
                                         //page fault
-                                        //find in backingstore, update pageTable
+                                        //find page in backingstore
                                         signed char temporaryArrayPage[256];
                                         findPageInBackingStore(currentPage, temporaryArrayPage);
 
-                                        //fifo or physical memory it's not full        
+                                        //if fifo or physical memory it's not full        
                                         if (fullPhysicalMemory == 0 || strcmp(physicalMemoryReplacementAlgo, "fifo") == 0) {
                                                 findAndPutInvalidBitInPageTableForRelatedFrame(countPhysicalMemory);
                                                 passValuesFromBackStoreToFrame(temporaryArrayPage, countPhysicalMemory);
@@ -183,7 +188,7 @@ int main(int argc, char *argv[]) {
         return 0;
 }
 
-//tlb
+//######################## TLB ########################
 int searchPageInTLB(int pageToSearch) {
         for (int i = 0; i < TLB_SIZE; i++) {
                 if (tlb[i].page == pageToSearch) {
@@ -230,7 +235,7 @@ void updateTLB(int newPage, int newFrame) {
         countTLB = (countTLB + 1) % TLB_SIZE;
 }
 
-//lru main memory
+//######################## Main Memory ########################
 int findLessUsedFrame() {
         int frameIndex = 0;
         int min = physicalMemory[0].lastTimeUsed;
@@ -247,7 +252,6 @@ int findLessUsedFrame() {
         return frameIndex;
 }
 
-//main memory
 void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256], int frame) {
 
         for (int i = 0; i < 256; i++) {
@@ -255,7 +259,7 @@ void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256], int fr
         }
 }
 
-//page table
+//######################## Page Table ########################
 void findAndPutInvalidBitInPageTableForRelatedFrame(int frameToSearch) {
 
         for (int i = 0; i < 256; i++) {
