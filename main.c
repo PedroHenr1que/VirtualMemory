@@ -19,7 +19,7 @@ struct pageTableElement {
 struct tlbElement {
         int page;
         int frame;
-        int isValid;
+        int lastTimeUsed;
 };
 
 #define PHYSICAL_MEMORY_SIZE 128
@@ -32,6 +32,7 @@ void findAndPutInvalidBitInPageTableForRelatedFrame(int frameToSearch);
 int findLessUsedFrame();
 int searchPageInTLB(int pageToSearch);
 void updateTLB(int newPage, int newFrame);
+int findLessUsedPageTLB();
 
 struct pageTableElement pageTable[256];
 struct physicalMemoryFrame physicalMemory[PHYSICAL_MEMORY_SIZE];
@@ -106,7 +107,7 @@ int main(int argc, char *argv[]) {
                         int value = physicalMemory[tlb[indexFrameFromTlb].frame].pageFromBackingStore[currentOffset];
 
                         physicalMemory[tlb[indexFrameFromTlb].frame].lastTimeUsed = time;
-                        
+
                         writeInOutArchive(virtualAddressDec, physicalAddress, value);
                 } else {
 
@@ -186,6 +187,7 @@ int main(int argc, char *argv[]) {
 int searchPageInTLB(int pageToSearch) {
         for (int i = 0; i < TLB_SIZE; i++) {
                 if (tlb[i].page == pageToSearch) {
+                        tlb[i].lastTimeUsed = time;
                         return i;//tlb[i].frame;
                 } 
         }
@@ -193,14 +195,32 @@ int searchPageInTLB(int pageToSearch) {
         return -1;
 }
 
+int findLessUsedPageTLB() {
+        int index = 0;
+        int min = tlb[0].lastTimeUsed;
+
+        for (int i = 1; i < TLB_SIZE; i++) {
+                if (tlb[i].lastTimeUsed < min) {
+                        min = tlb[i].lastTimeUsed;
+                        index = i;
+                }
+                
+        }
+        return index;
+}
+
 void updateTLB(int newPage, int newFrame) {
 
         if (tlbIsFull == 0 || strcmp(tlbReplacementAlgo, "fifo") == 0) {
                 tlb[countTLB].frame = newFrame;
                 tlb[countTLB].page = newPage;
-                tlb[countTLB].isValid = VALID;
+                tlb[countTLB].lastTimeUsed = time;
+                
         } else {
-                        
+                int lessUsedIndex = findLessUsedPageTLB();
+                tlb[lessUsedIndex].frame = newFrame;
+                tlb[lessUsedIndex].page = newPage;
+                tlb[lessUsedIndex].lastTimeUsed = time;
         }       
 
         if (countTLB == (TLB_SIZE - 1)) {
