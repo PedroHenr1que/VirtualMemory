@@ -24,6 +24,7 @@ struct tlbElement {
 
 #define PHYSICAL_MEMORY_SIZE 128
 #define TLB_SIZE 16
+#define PAGE_TABLE_SIZE 256
 #define VALID 1
 #define NOT_VALID 0
 
@@ -35,7 +36,7 @@ void updateTLB(int newPage, int newFrame);
 int findLessUsedPageTLB();
 
 
-struct pageTableElement pageTable[256];
+struct pageTableElement pageTable[PAGE_TABLE_SIZE];
 struct physicalMemoryFrame physicalMemory[PHYSICAL_MEMORY_SIZE];
 struct tlbElement tlb[TLB_SIZE];
 
@@ -69,7 +70,7 @@ int main(int argc, char *argv[]) {
         double tlbHitRate = 0.0;
 
         //Initialize page table with invalid bit
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < PAGE_TABLE_SIZE; i++) {
                 pageTable[i].isValid = NOT_VALID;
         }
 
@@ -193,7 +194,7 @@ int searchPageInTLB(int pageToSearch) {
         for (int i = 0; i < TLB_SIZE; i++) {
                 if (tlb[i].page == pageToSearch) {
                         tlb[i].lastTimeUsed = time;
-                        return i;//tlb[i].frame;
+                        return i;
                 } 
         }
         
@@ -262,7 +263,7 @@ void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256], int fr
 //######################## Page Table ########################
 void findAndPutInvalidBitInPageTableForRelatedFrame(int frameToSearch) {
 
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < PAGE_TABLE_SIZE; i++) {
                 if (pageTable[i].frame == frameToSearch && pageTable[i].isValid == VALID) {
                         pageTable[i].isValid = NOT_VALID;
                         break;
