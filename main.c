@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
                 int currentPage, currentOffset;
                 int isInPageTable = 0;
 
-                fgetc(file);
+                //fgetc(file);
                 //get page and offset for the current address
                 getPageAndOffset(virtualAddressDec, returnArray);
 
@@ -145,6 +145,9 @@ int main(int argc, char *argv[]) {
                         physicalMemory[tlb[indexFrameFromTlb].frame].lastTimeUsed = clk;
 
                         writeInOutArchive(virtualAddressDec, physicalAddress, value);
+
+                        //allow to go to the next instruction
+                        fgetc(file);
                 } else {
 
                         while (isInPageTable == 0) {
@@ -167,7 +170,9 @@ int main(int argc, char *argv[]) {
                                         }
                                         
                                         isInPageTable = 1;
-                                        
+
+                                        //allow to go to the next instruction
+                                        fgetc(file);
                                 } else {
                                         //page fault
                                         //find page in backingstore
@@ -203,8 +208,16 @@ int main(int argc, char *argv[]) {
                                         }
                                         
                                         countPhysicalMemory = (countPhysicalMemory + 1) % PHYSICAL_MEMORY_SIZE;
-                                        totalPageFaults ++;  
+                                        totalPageFaults ++;
+                                        
+                                        //read instruction and translate it again
+                                        fscanf(file, "%[^\n]", virtualAddressStr);
+                                        virtualAddressDec = atoi(virtualAddressStr);
+                                        getPageAndOffset(virtualAddressDec, returnArray);
+                                        currentPage = returnArray[0];
+                                        currentOffset = returnArray[1];
                                 }
+
                         }
                 }
                 
