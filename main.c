@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include "Libs/binTrans/binTrans.h"
 #include "Libs/ErrorHandler/errorHandler.h"
 #include "Libs/backingStore/backingStore.h"
@@ -22,6 +23,11 @@ struct tlbElement {
         int lastTimeUsed;
 };
 
+struct argsToSearchTLB {
+        int indexToSearch;
+        int pageToFind;
+};
+
 #define PHYSICAL_MEMORY_SIZE 128
 #define TLB_SIZE 16
 #define PAGE_TABLE_SIZE 256
@@ -32,6 +38,7 @@ void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256], int fr
 void findAndPutInvalidBitInPageTableForRelatedFrame(int frameToSearch);
 int findLessUsedFrame();
 int searchPageInTLB(int pageToSearch);
+//void *searchPageInTLB(void *args);
 void updateTLB(int newPage, int newFrame);
 int findLessUsedPageTLB();
 
@@ -40,7 +47,7 @@ struct pageTableElement pageTable[PAGE_TABLE_SIZE];
 struct physicalMemoryFrame physicalMemory[PHYSICAL_MEMORY_SIZE];
 struct tlbElement tlb[TLB_SIZE];
 
-int time = 0;
+int clk = 0;
 int tlbIsFull = 0;
 char *tlbReplacementAlgo;
 int countTLB = 0;
@@ -90,7 +97,8 @@ int main(int argc, char *argv[]) {
         //####################################################################################
         while ((fscanf(file, "%[^\n]", virtualAddressStr)) != EOF) {
                 //cast string address to decimal
-                int virtualAddressDec = atoi(virtualAddressStr), currentPage, currentOffset;
+                int virtualAddressDec = atoi(virtualAddressStr);
+                int currentPage, currentOffset;
                 int isInPageTable = 0;
 
                 fgetc(file);
@@ -102,15 +110,39 @@ int main(int argc, char *argv[]) {
 
                 //#########################################################################
                 //search in tlb
-                int indexFrameFromTlb = searchPageInTLB(currentPage);
+                //pthread_t threadsSearchTLB[TLB_SIZE];
 
+                //create threads to search in tlb
+                // for (int i = 0; i < TLB_SIZE; i++) {
+                //         struct argsToSearchTLB *argsToTLB = malloc(sizeof(struct argsToSearchTLB));
+                //         argsToTLB->indexToSearch = i;
+                //         argsToTLB->pageToFind = currentPage;
+                //         pthread_create(&threadsSearchTLB[i], NULL, searchPageInTLB, (void *)argsToTLB);
+                // }
+
+                //returns from threads
+                // int indexFrameFromTlb = -1;
+                // for (int i = 0; i < TLB_SIZE; i++) {
+                //         void *returnFromThread;
+                //         pthread_join(threadsSearchTLB[i], returnFromThread);
+                //         if (((int)returnFromThread) != -1) {
+                //                 indexFrameFromTlb = (int)returnFromThread;
+                //         }
+                        
+                // }
+
+                int indexFrameFromTlb = searchPageInTLB(currentPage);
+                
                 if (indexFrameFromTlb != -1) {
                         tlbHits++;
                         int physicalAddress = (tlb[indexFrameFromTlb].frame * 256) + currentOffset;
                         int value = physicalMemory[tlb[indexFrameFromTlb].frame].pageFromBackingStore[currentOffset];
 
+                        //update tlb time
+                        tlb[indexFrameFromTlb].lastTimeUsed = clk;
+
                         //update physical memory time
-                        physicalMemory[tlb[indexFrameFromTlb].frame].lastTimeUsed = time;
+                        physicalMemory[tlb[indexFrameFromTlb].frame].lastTimeUsed = clk;
 
                         writeInOutArchive(virtualAddressDec, physicalAddress, value);
                 } else {
@@ -125,7 +157,7 @@ int main(int argc, char *argv[]) {
                                         int value = physicalMemory[currentFrame].pageFromBackingStore[currentOffset];
                                         
                                         //update physical memory
-                                        physicalMemory[currentFrame].lastTimeUsed = time;
+                                        physicalMemory[currentFrame].lastTimeUsed = clk;
 
                                         writeInOutArchive(virtualAddressDec, physicalAddress, value);
 
@@ -135,8 +167,8 @@ int main(int argc, char *argv[]) {
                                         }
                                         
                                         isInPageTable = 1;
-
-                                } else { 
+                                        
+                                } else {
                                         //page fault
                                         //find page in backingstore
                                         signed char temporaryArrayPage[256];
@@ -158,7 +190,7 @@ int main(int argc, char *argv[]) {
                                                 findAndPutInvalidBitInPageTableForRelatedFrame(lessUsedFrame);
                                                 passValuesFromBackStoreToFrame(temporaryArrayPage, lessUsedFrame);
 
-                                                physicalMemory[lessUsedFrame].lastTimeUsed = time;
+                                                physicalMemory[lessUsedFrame].lastTimeUsed = clk;
 
                                                 pageTable[currentPage].frame = lessUsedFrame;
                                                 pageTable[currentPage].isValid = VALID;
@@ -176,7 +208,7 @@ int main(int argc, char *argv[]) {
                         }
                 }
                 
-                time++;
+                clk++;
                 totalOfVirtualAddressesTranslated ++;
         }
         
@@ -193,13 +225,25 @@ int main(int argc, char *argv[]) {
 int searchPageInTLB(int pageToSearch) {
         for (int i = 0; i < TLB_SIZE; i++) {
                 if (tlb[i].page == pageToSearch) {
-                        tlb[i].lastTimeUsed = time;
+                        tlb[i].lastTimeUsed = clk;
                         return i;
                 } 
         }
         
         return -1;
 }
+
+// void *searchPageInTLB(void *args) {
+        
+//         struct argsToSearchTLB *argsCasted = (struct argsToSearchTLB *) args;
+
+//         if (tlb[argsCasted->indexToSearch].page == argsCasted->pageToFind) {
+//                 //tlb[argsCasted->indexToSearch].lastTimeUsed = time;
+//                 return ((void *) (size_t)argsCasted->indexToSearch);
+//         }
+        
+//         return ((void *)-1);
+// }
 
 int findLessUsedPageTLB() {
         int index = 0;
@@ -220,13 +264,13 @@ void updateTLB(int newPage, int newFrame) {
         if (tlbIsFull == 0 || strcmp(tlbReplacementAlgo, "fifo") == 0) {
                 tlb[countTLB].frame = newFrame;
                 tlb[countTLB].page = newPage;
-                tlb[countTLB].lastTimeUsed = time;
+                tlb[countTLB].lastTimeUsed = clk;
                 
         } else {
                 int lessUsedIndex = findLessUsedPageTLB();
                 tlb[lessUsedIndex].frame = newFrame;
                 tlb[lessUsedIndex].page = newPage;
-                tlb[lessUsedIndex].lastTimeUsed = time;
+                tlb[lessUsedIndex].lastTimeUsed = clk;
         }       
 
         if (countTLB == (TLB_SIZE - 1)) {

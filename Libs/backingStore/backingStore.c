@@ -1,23 +1,5 @@
 #include <stdio.h>
 
-// struct physicalMemoryFrame {
-//         signed char pageFromBackingStore[256];
-// };
-
-// void findPageInBackingStore(int page, signed char returnArray[256]);
-
-// int main() {
-
-//         struct physicalMemoryFrame physicalMemory[256];
-//         signed char returnedValues[256];
-//         findPageInBackingStore(66, returnedValues);
-
-//         for (int i = 0; i < 256; i++) {
-//                 printf("%d Valor %d\n", i,returnedValues[i]);
-//         }
-        
-// }
-
 void findPageInBackingStore(int page, signed char returnArray[256]) {
 
         FILE *file;
