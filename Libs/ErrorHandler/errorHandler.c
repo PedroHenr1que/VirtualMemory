@@ -1,17 +1,7 @@
+//functions to check errors
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// int checkArgs(int argc, char *argv[]);
-// int checkIfFileExistAndCanBeOpen(char fileName[]);
-// int checkFileFormat(char fileName[]);
-
-// int main(int argc, char *argv[]) {
-//         // int result = checkArgs(argc, argv);
-//         checkFileFormat(argv[1]);
-//         //checkIfFileExistAndCanBeOpen(argv[1]);
-//         // printf("\n\n\n%d", result);
-// }
 
 int checkIfFileExistAndCanBeOpen(char fileName[]) {
 
@@ -98,4 +88,3 @@ int checkArgs(int argc, char *argv[]) {
         
         return result;
 }
-

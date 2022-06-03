@@ -1,3 +1,4 @@
+//functions to get data from backing_store
 #include <stdio.h>
 
 void findPageInBackingStore(int page, signed char returnArray[256]) {

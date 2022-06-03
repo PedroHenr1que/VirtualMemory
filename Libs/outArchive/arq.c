@@ -1,3 +1,4 @@
+//functions to write in the archive
 #include <stdio.h>
 
 void writeInOutArchive(int virtualAddress, int physicalAddress, int value) {

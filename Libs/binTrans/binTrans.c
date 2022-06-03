@@ -1,3 +1,4 @@
+//functions to translate to binary e decimal
 void translateToBinary(int num, int addressInBin[16]) {
 
         for (int i = 15; i >= 0; i--) {

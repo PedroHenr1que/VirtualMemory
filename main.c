@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
                 currentOffset = returnArray[1];
 
                 //#########################################################################
-                //search in tlb throught threads
+                //search in tlb through threads
                 int indexFrameFromTlb = searchTlbThreads(currentPage);
                 
                 if (indexFrameFromTlb != -1) {
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
                                         writeInOutArchive(virtualAddressDec, physicalAddress, value);
 
                                         //update tlb if page it's not already there
-                                        //search in tlb throught threads
+                                        //search in tlb through threads
                                         if (searchTlbThreads(currentPage) == -1) {
                                                 updateTLB(currentPage, currentFrame);
                                         }
