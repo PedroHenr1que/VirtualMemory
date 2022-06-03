@@ -37,7 +37,6 @@ struct argsToSearchTLB {
 void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256], int frame);
 void findAndPutInvalidBitInPageTableForRelatedFrame(int frameToSearch);
 int findLessUsedFrame();
-//int searchPageInTLB(int pageToSearch);
 int searchTlbThreads(int page);
 void *searchPageInTLB(void *args);
 void updateTLB(int newPage, int newFrame);
@@ -246,7 +245,6 @@ void *searchPageInTLB(void *args) {
         struct argsToSearchTLB *argsCasted = (struct argsToSearchTLB *)(size_t) args;
 
         if (tlb[argsCasted->indexToSearch].page == argsCasted->pageToFind) {
-                //tlb[argsCasted->indexToSearch].lastTimeUsed = time;
                 return ((void *) (size_t)argsCasted->indexToSearch);
         }
         
