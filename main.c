@@ -37,8 +37,9 @@ struct argsToSearchTLB {
 void passValuesFromBackStoreToFrame(signed char valuesFromBackStore[256], int frame);
 void findAndPutInvalidBitInPageTableForRelatedFrame(int frameToSearch);
 int findLessUsedFrame();
-int searchPageInTLB(int pageToSearch);
-//void *searchPageInTLB(void *args);
+//int searchPageInTLB(int pageToSearch);
+int searchTlbThreads(int page);
+void *searchPageInTLB(void *args);
 void updateTLB(int newPage, int newFrame);
 int findLessUsedPageTLB();
 
@@ -101,7 +102,6 @@ int main(int argc, char *argv[]) {
                 int currentPage, currentOffset;
                 int isInPageTable = 0;
 
-                //fgetc(file);
                 //get page and offset for the current address
                 getPageAndOffset(virtualAddressDec, returnArray);
 
@@ -109,29 +109,8 @@ int main(int argc, char *argv[]) {
                 currentOffset = returnArray[1];
 
                 //#########################################################################
-                //search in tlb
-                //pthread_t threadsSearchTLB[TLB_SIZE];
-
-                //create threads to search in tlb
-                // for (int i = 0; i < TLB_SIZE; i++) {
-                //         struct argsToSearchTLB *argsToTLB = malloc(sizeof(struct argsToSearchTLB));
-                //         argsToTLB->indexToSearch = i;
-                //         argsToTLB->pageToFind = currentPage;
-                //         pthread_create(&threadsSearchTLB[i], NULL, searchPageInTLB, (void *)argsToTLB);
-                // }
-
-                //returns from threads
-                // int indexFrameFromTlb = -1;
-                // for (int i = 0; i < TLB_SIZE; i++) {
-                //         void *returnFromThread;
-                //         pthread_join(threadsSearchTLB[i], returnFromThread);
-                //         if (((int)returnFromThread) != -1) {
-                //                 indexFrameFromTlb = (int)returnFromThread;
-                //         }
-                        
-                // }
-
-                int indexFrameFromTlb = searchPageInTLB(currentPage);
+                //search in tlb throught threads
+                int indexFrameFromTlb = searchTlbThreads(currentPage);
                 
                 if (indexFrameFromTlb != -1) {
                         tlbHits++;
@@ -165,7 +144,8 @@ int main(int argc, char *argv[]) {
                                         writeInOutArchive(virtualAddressDec, physicalAddress, value);
 
                                         //update tlb if page it's not already there
-                                        if (searchPageInTLB(currentPage) == -1) {
+                                        //search in tlb throught threads
+                                        if (searchTlbThreads(currentPage) == -1) {
                                                 updateTLB(currentPage, currentFrame);
                                         }
                                         
@@ -210,7 +190,7 @@ int main(int argc, char *argv[]) {
                                         countPhysicalMemory = (countPhysicalMemory + 1) % PHYSICAL_MEMORY_SIZE;
                                         totalPageFaults ++;
                                         
-                                        //read instruction and translate it again
+                                        //read instruction and translate it again, because it was a page fault
                                         fscanf(file, "%[^\n]", virtualAddressStr);
                                         virtualAddressDec = atoi(virtualAddressStr);
                                         getPageAndOffset(virtualAddressDec, returnArray);
@@ -235,28 +215,43 @@ int main(int argc, char *argv[]) {
 }
 
 //######################## TLB ########################
-int searchPageInTLB(int pageToSearch) {
+int searchTlbThreads(int page) {
+
+        pthread_t threadsSearchTLB[TLB_SIZE];
+
+        //create threads to search in tlb
         for (int i = 0; i < TLB_SIZE; i++) {
-                if (tlb[i].page == pageToSearch) {
-                        tlb[i].lastTimeUsed = clk;
-                        return i;
-                } 
+                struct argsToSearchTLB *argsToTLB = malloc(sizeof(struct argsToSearchTLB));
+                argsToTLB->indexToSearch = i;
+                argsToTLB->pageToFind = page;
+                pthread_create(&threadsSearchTLB[i], NULL, searchPageInTLB, (void *)(size_t)argsToTLB);
         }
-        
-        return -1;
+
+        //returns from threads
+        int indexFrameFromTlb = -1;
+        for (int i = 0; i < TLB_SIZE; i++) {
+                int returnFromThread;
+                pthread_join(threadsSearchTLB[i], (void *) &returnFromThread);
+                if (returnFromThread != -1) {
+                        indexFrameFromTlb = returnFromThread;
+                }
+                        
+        }
+
+        return indexFrameFromTlb;
 }
 
-// void *searchPageInTLB(void *args) {
+void *searchPageInTLB(void *args) {
         
-//         struct argsToSearchTLB *argsCasted = (struct argsToSearchTLB *) args;
+        struct argsToSearchTLB *argsCasted = (struct argsToSearchTLB *)(size_t) args;
 
-//         if (tlb[argsCasted->indexToSearch].page == argsCasted->pageToFind) {
-//                 //tlb[argsCasted->indexToSearch].lastTimeUsed = time;
-//                 return ((void *) (size_t)argsCasted->indexToSearch);
-//         }
+        if (tlb[argsCasted->indexToSearch].page == argsCasted->pageToFind) {
+                //tlb[argsCasted->indexToSearch].lastTimeUsed = time;
+                return ((void *) (size_t)argsCasted->indexToSearch);
+        }
         
-//         return ((void *)-1);
-// }
+        return ((void *)-1);
+}
 
 int findLessUsedPageTLB() {
         int index = 0;
