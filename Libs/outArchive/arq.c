@@ -4,9 +4,7 @@
 void writeInOutArchive(int virtualAddress, int physicalAddress, int value) {
 
         FILE *file = fopen("correct.txt", "a");
-
         fprintf(file, "Virtual address: %d Physical address: %d Value: %d\n", virtualAddress, physicalAddress, value);
-
         fclose(file);
 }
 
