@@ -1,6 +1,6 @@
 *.pdf
 *.o
 vm
-testFiles/
+.testFiles/
 Tests/
 Files/
