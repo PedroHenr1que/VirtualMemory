@@ -54,15 +54,15 @@ int countTLB = 0;
 
 int main(int argc, char *argv[]) {
 
-        //aux vars for replacement algo
-        int countPhysicalMemory = 0;
-        int fullPhysicalMemory = 0;
-
         //Check if the args are wrong, if they are the program exit
         int checkErrors = checkArgs(argc, argv);
         if (checkErrors < 0) {
                 exit(1);
         }
+
+        //aux vars for replacement algo
+        int countPhysicalMemory = 0;
+        int fullPhysicalMemory = 0;
 
         //args
         char *virtualAddressesFile = argv[1];
