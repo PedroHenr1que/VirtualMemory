@@ -68,6 +68,9 @@ Where "X" is the text archive (.txt) that has the Virtual Addresses, "Y" is repl
         ./vm addresses.txt fifo fifo
 ```
 When you run this command you should see a new archive called "correct.txt" that is the result of the program. 
+
+> Obs: 
+>- The "addresses.txt" and BACKING_STORE.bin must be in the same directory as the main.c
 <br/>
 <br/>
 ## How to clean the compiled archives
