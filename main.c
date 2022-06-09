@@ -160,7 +160,9 @@ int main(int argc, char *argv[]) {
 
                                         //if fifo or physical memory it's not full        
                                         if (fullPhysicalMemory == 0 || strcmp(physicalMemoryReplacementAlgo, "fifo") == 0) {
-                                                findAndPutInvalidBitInPageTableForRelatedFrame(countPhysicalMemory);
+                                                if (fullPhysicalMemory == 1) {
+                                                        findAndPutInvalidBitInPageTableForRelatedFrame(countPhysicalMemory);
+                                                }
                                                 passValuesFromBackStoreToFrame(temporaryArrayPage, countPhysicalMemory);
                                         
                                                 pageTable[currentPage].frame = countPhysicalMemory;
